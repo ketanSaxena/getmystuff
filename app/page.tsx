@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Package, 
   Plane, 
@@ -8,27 +8,20 @@ import {
   Plus, 
   MessageSquare, 
   ShieldCheck, 
-  User, 
   ChevronRight, 
   MapPin, 
   Calendar, 
   Weight, 
   Star,
   Award,
-  LogOut,
   Bell,
   CheckCircle2,
-  AlertTriangle,
-  Info,
   Linkedin,
   Facebook,
   Instagram,
-  Phone,
   X,
   Users,
   Heart,
-  Settings,
-  Shield,
   HelpCircle,
   Mail,
   Camera,
@@ -37,35 +30,80 @@ import {
   Clock,
   Circle,
   ExternalLink,
-  ChevronDown,
-  UserCircle
+  Key,
+  LogOut,
+  AlertTriangle,
+  FileText
 } from 'lucide-react';
 
-// --- Types & Mock Data ---
-const CATEGORIES = ["Documents", "Electronics", "Clothing", "Food", "Gifts", "Other"];
+// --- Types & Interfaces ---
+interface UserProfile {
+  firstName: string;
+  lastName: string;
+  email: string;
+  currentLocation: string;
+  frequentPlaces: string;
+  socials: {
+    linkedin: boolean;
+    facebook: boolean;
+    instagram: boolean;
+  };
+}
 
-const getRelativeDate = (hoursToAdd) => {
+interface Trip {
+  id: number;
+  user: {
+    name: string;
+    level: number;
+    rating: number;
+    tripsCompleted: number;
+    isVerified: boolean;
+    socials: string[];
+  };
+  from: string;
+  to: string;
+  departureTime: string;
+  capacity: number;
+  remaining: number;
+  categories: string[];
+  isCompanion: boolean;
+  flightNumber?: string;
+}
+
+interface Notification {
+  id: number;
+  type: 'travel' | 'social';
+  title: string;
+  message: string;
+  time: string;
+  unread: boolean;
+}
+
+// --- Constants & Mock Data ---
+const CATEGORIES: string[] = ["Documents", "Electronics", "Clothing", "Food", "Gifts", "Other"];
+
+const getRelativeDate = (hoursToAdd: number): string => {
   const d = new Date();
   d.setHours(d.getHours() + hoursToAdd);
   return d.toISOString();
 };
 
-const INITIAL_NOTIFICATIONS = [
+const INITIAL_NOTIFICATIONS: Notification[] = [
   { id: 1, type: 'travel', title: 'New Trip Match!', message: 'A traveller is going from New Delhi to London on your requested date.', time: '2 mins ago', unread: true },
   { id: 2, type: 'social', title: 'LinkedIn Verified', message: 'Your social profile has been successfully linked and verified.', time: '1 hour ago', unread: true }
 ];
 
-const INITIAL_TRIPS = [
+const INITIAL_TRIPS: Trip[] = [
   { id: 1, user: { name: "Ketan Saxena", level: 4, rating: 4.8, tripsCompleted: 12, isVerified: true, socials: ['linkedin', 'instagram'] }, from: "New Delhi", to: "London", departureTime: getRelativeDate(2), capacity: 5, remaining: 3.5, categories: ["Documents", "Electronics"], isCompanion: true, flightNumber: "AI101" },
   { id: 2, user: { name: "Priyesha Yadav", level: 5, rating: 4.9, tripsCompleted: 24, isVerified: true, socials: ['linkedin', 'facebook', 'instagram'] }, from: "Mumbai", to: "New York", departureTime: getRelativeDate(10), capacity: 10, remaining: 8.0, categories: ["Clothing", "Gifts"], isCompanion: false, flightNumber: "EK202" },
   { id: 3, user: { name: "Rahul Mehta", level: 3, rating: 4.5, tripsCompleted: 5, isVerified: true, socials: ['facebook'] }, from: "Dubai", to: "Paris", departureTime: getRelativeDate(55), capacity: 15, remaining: 12.0, categories: ["Food", "Gifts"], isCompanion: false }
 ];
 
 // --- Utilities ---
-const getDepartureLabel = (isoDate) => {
+const getDepartureLabel = (isoDate: string): { text: string; color: string } => {
   const now = new Date();
   const dep = new Date(isoDate);
-  const diffMs = dep - now;
+  const diffMs = dep.getTime() - now.getTime();
   if (diffMs < 0) return { text: "Departed", color: "text-gray-400" };
   const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
   const diffDays = Math.floor(diffHrs / 24);
@@ -77,8 +115,8 @@ const getDepartureLabel = (isoDate) => {
 };
 
 // --- Shared UI Components ---
-const Badge = ({ children, color = "blue" }) => {
-  const colors = {
+const Badge = ({ children, color = "blue" }: { children: React.ReactNode; color?: string }) => {
+  const colors: Record<string, string> = {
     blue: "bg-blue-100 text-blue-700",
     green: "bg-green-100 text-green-700",
     amber: "bg-amber-100 text-amber-700",
@@ -88,20 +126,28 @@ const Badge = ({ children, color = "blue" }) => {
   return <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${colors[color]}`}>{children}</span>;
 };
 
-const Card = ({ children, className = "" }) => (
+const Card = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
   <div className={`bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-4 ${className}`}>{children}</div>
 );
 
 // --- Modals & Overlays ---
 
-const ContactSupportModal = ({ isOpen, onClose }) => {
+const ContactSupportModal = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const [sent, setSent] = useState(false);
+  const [supportForm, setSupportForm] = useState({ title: '', description: '', tripId: '' });
+  
   if (!isOpen) return null;
 
-  const handleSend = (e) => {
+  const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
+    // Logic: Form an email body to support@getmystuff.co
+    console.log("Email sent to support@getmystuff.co with data:", supportForm);
     setSent(true);
-    setTimeout(() => { setSent(false); onClose(); }, 2000);
+    setTimeout(() => { 
+      setSent(false); 
+      setSupportForm({ title: '', description: '', tripId: '' });
+      onClose(); 
+    }, 2500);
   };
 
   return (
@@ -115,13 +161,31 @@ const ContactSupportModal = ({ isOpen, onClose }) => {
           <div className="py-10 text-center space-y-3">
             <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto"><CheckCircle2 size={32}/></div>
             <p className="font-bold text-gray-900">Request Sent!</p>
-            <p className="text-sm text-gray-500">We'll get back to you at support@getmystuff.co</p>
+            <p className="text-sm text-gray-500">A ticket has been generated for support@getmystuff.co</p>
           </div>
         ) : (
           <form onSubmit={handleSend} className="space-y-4">
-            <input required placeholder="Request Title" className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500" />
-            <input placeholder="Trip ID (Optional)" className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500" />
-            <textarea required placeholder="Description of your issue..." rows={4} className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500" />
+            <input 
+              required 
+              placeholder="Request Title" 
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500"
+              value={supportForm.title}
+              onChange={e => setSupportForm({...supportForm, title: e.target.value})}
+            />
+            <input 
+              placeholder="Trip ID Number (Optional)" 
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500" 
+              value={supportForm.tripId}
+              onChange={e => setSupportForm({...supportForm, tripId: e.target.value})}
+            />
+            <textarea 
+              required 
+              placeholder="Tell us what happened..." 
+              rows={4} 
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500" 
+              value={supportForm.description}
+              onChange={e => setSupportForm({...supportForm, description: e.target.value})}
+            />
             <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition-all">Send Support Request</button>
           </form>
         )}
@@ -130,12 +194,24 @@ const ContactSupportModal = ({ isOpen, onClose }) => {
   );
 };
 
-const UserSidebar = ({ isOpen, onClose, userProfile, setUserProfile, onOpenSupport }) => {
+const UserSidebar = ({ 
+  isOpen, 
+  onClose, 
+  userProfile, 
+  setUserProfile, 
+  onOpenSupport 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  userProfile: UserProfile; 
+  setUserProfile: React.Dispatch<React.SetStateAction<UserProfile>>;
+  onOpenSupport: () => void;
+}) => {
   const [editMode, setEditMode] = useState(false);
   if (!isOpen) return null;
 
-  const toggleSocial = (key) => {
-    setUserProfile(prev => ({
+  const toggleSocial = (key: keyof UserProfile['socials']) => {
+    setUserProfile((prev) => ({
       ...prev,
       socials: { ...prev.socials, [key]: !prev.socials[key] }
     }));
@@ -144,71 +220,93 @@ const UserSidebar = ({ isOpen, onClose, userProfile, setUserProfile, onOpenSuppo
   return (
     <div className="fixed inset-0 z-[120] flex justify-end">
       <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]" onClick={onClose} />
-      <div className="relative w-full max-w-sm bg-white h-full shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300">
+      <div className="relative w-full max-w-sm bg-white h-full shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300 flex flex-col">
+        
+        {/* Header */}
         <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
           <h2 className="text-xl font-bold">My Account</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full"><X size={20}/></button>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors"><X size={20}/></button>
         </div>
 
-        <div className="p-6 space-y-8">
-          {/* Group 1: Profile */}
+        <div className="p-6 space-y-10 flex-1">
+          {/* Group 1: Profile Details */}
           <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Profile Details</h3>
-              <button onClick={() => setEditMode(!editMode)} className="text-xs font-bold text-indigo-600 hover:underline">{editMode ? 'Save' : 'Edit'}</button>
+              <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Group 1: Profile Details</h3>
+              <button onClick={() => setEditMode(!editMode)} className="text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-2 py-1 rounded transition-colors">
+                {editMode ? 'Save Profile' : 'Edit Profile'}
+              </button>
             </div>
+            
             <div className="flex items-center gap-4">
               <div className="relative group">
-                <div className="w-20 h-20 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-2xl overflow-hidden">
+                <div className="w-20 h-20 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-2xl overflow-hidden border-2 border-indigo-50">
                   {userProfile.firstName[0]}{userProfile.lastName[0]}
                 </div>
-                <button className="absolute -bottom-1 -right-1 p-1.5 bg-white border border-gray-100 shadow-md rounded-lg text-gray-600 hover:text-indigo-600"><Camera size={14}/></button>
+                <button className="absolute -bottom-1 -right-1 p-2 bg-white border border-gray-100 shadow-lg rounded-xl text-gray-600 hover:text-indigo-600 transition-all hover:scale-110">
+                  <Camera size={14}/>
+                </button>
               </div>
-              <div className="flex-1">
+              <div className="flex-1 space-y-1">
                 {editMode ? (
                   <div className="space-y-2">
-                    <input className="w-full text-sm p-1 border-b outline-none focus:border-indigo-500" value={userProfile.firstName} onChange={e => setUserProfile({...userProfile, firstName: e.target.value})} />
-                    <input className="w-full text-sm p-1 border-b outline-none focus:border-indigo-500" value={userProfile.lastName} onChange={e => setUserProfile({...userProfile, lastName: e.target.value})} />
+                    <input className="w-full text-sm p-1.5 bg-gray-50 rounded-lg border border-gray-100 outline-none focus:border-indigo-500" placeholder="First Name" value={userProfile.firstName} onChange={e => setUserProfile({...userProfile, firstName: e.target.value})} />
+                    <input className="w-full text-sm p-1.5 bg-gray-50 rounded-lg border border-gray-100 outline-none focus:border-indigo-500" placeholder="Last Name" value={userProfile.lastName} onChange={e => setUserProfile({...userProfile, lastName: e.target.value})} />
                   </div>
                 ) : (
                   <>
-                    <p className="font-bold text-lg">{userProfile.firstName} {userProfile.lastName}</p>
-                    <p className="text-xs text-gray-500">Member since Dec 2025</p>
+                    <p className="font-bold text-lg text-gray-900 leading-tight">{userProfile.firstName} {userProfile.lastName}</p>
+                    <p className="text-xs text-gray-500 flex items-center gap-1 font-medium"><CheckCircle2 size={12} className="text-green-500"/> Verified Member</p>
                   </>
                 )}
               </div>
             </div>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 text-sm text-gray-600">
-                <MapPin size={16} className="text-gray-400" />
-                <span>Current: <strong>Dubai, UAE</strong></span>
+
+            <div className="space-y-3 pt-2">
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400"><MapPin size={16} /></div>
+                <div className="flex-1">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Current Place</p>
+                  {editMode ? (
+                    <input className="w-full text-sm p-1 border-b outline-none focus:border-indigo-500" value={userProfile.currentLocation} onChange={e => setUserProfile({...userProfile, currentLocation: e.target.value})} />
+                  ) : (
+                    <p className="font-bold text-gray-700">{userProfile.currentLocation}</p>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-3 text-sm text-gray-600">
-                <Plane size={16} className="text-gray-400" />
-                <span>Frequent: <strong>London, Delhi, NYC</strong></span>
+              <div className="flex items-center gap-3 text-sm">
+                <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400"><Plane size={16} /></div>
+                <div className="flex-1">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Frequent Destinations</p>
+                  {editMode ? (
+                    <input className="w-full text-sm p-1 border-b outline-none focus:border-indigo-500" value={userProfile.frequentPlaces} onChange={e => setUserProfile({...userProfile, frequentPlaces: e.target.value})} placeholder="e.g. NYC, London, Delhi" />
+                  ) : (
+                    <p className="font-bold text-gray-700">{userProfile.frequentPlaces}</p>
+                  )}
+                </div>
               </div>
             </div>
           </section>
 
-          {/* Group 2: Socials */}
+          {/* Group 2: My Socials */}
           <section className="space-y-4">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">My Socials</h3>
-            <div className="space-y-2">
+            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Group 2: My Socials</h3>
+            <div className="grid gap-2">
               {[
-                { id: 'linkedin', icon: <Linkedin size={18}/>, label: 'LinkedIn', color: 'text-blue-600' },
-                { id: 'facebook', icon: <Facebook size={18}/>, label: 'Facebook', color: 'text-blue-800' },
-                { id: 'instagram', icon: <Instagram size={18}/>, label: 'Instagram', color: 'text-pink-600' }
+                { id: 'linkedin', icon: <Linkedin size={18}/>, label: 'LinkedIn', color: 'text-blue-600', bg: 'bg-blue-50' },
+                { id: 'facebook', icon: <Facebook size={18}/>, label: 'Facebook', color: 'text-blue-800', bg: 'bg-blue-50' },
+                { id: 'instagram', icon: <Instagram size={18}/>, label: 'Instagram', color: 'text-pink-600', bg: 'bg-pink-50' }
               ].map(social => (
-                <div key={social.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div className={`flex items-center gap-3 font-medium ${social.color}`}>
-                    {social.icon}
+                <div key={social.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-2xl group/social border border-transparent hover:border-gray-100 transition-all">
+                  <div className={`flex items-center gap-3 font-bold ${social.color}`}>
+                    <div className={`p-2 rounded-xl ${social.bg}`}>{social.icon}</div>
                     <span className="text-sm text-gray-700">{social.label}</span>
                   </div>
                   <button 
-                    onClick={() => toggleSocial(social.id)}
-                    className={`w-10 h-5 rounded-full transition-colors relative ${userProfile.socials[social.id] ? 'bg-indigo-600' : 'bg-gray-300'}`}
+                    onClick={() => toggleSocial(social.id as keyof UserProfile['socials'])}
+                    className={`w-12 h-6 rounded-full transition-all relative flex items-center px-1 ${userProfile.socials[social.id as keyof UserProfile['socials']] ? 'bg-indigo-600' : 'bg-gray-300'}`}
                   >
-                    <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${userProfile.socials[social.id] ? 'left-6' : 'left-1'}`} />
+                    <div className={`w-4 h-4 bg-white rounded-full transition-all shadow-sm ${userProfile.socials[social.id as keyof UserProfile['socials']] ? 'ml-6' : 'ml-0'}`} />
                   </button>
                 </div>
               ))}
@@ -217,36 +315,59 @@ const UserSidebar = ({ isOpen, onClose, userProfile, setUserProfile, onOpenSuppo
 
           {/* Group 3: Account Mgmt */}
           <section className="space-y-4">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Account Management</h3>
-            <div className="grid grid-cols-1 gap-2">
-              <button className="flex items-center justify-between p-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors">
-                <div className="flex items-center gap-3"><Mail size={16} className="text-gray-400"/> Update Email</div>
-                <ChevronRight size={14}/>
+            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Group 3: Account Management</h3>
+            <div className="space-y-2">
+              <button className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-all group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white rounded-xl shadow-sm group-hover:shadow-md transition-all text-gray-400 group-hover:text-indigo-600"><Mail size={16}/></div>
+                  <span className="text-sm font-bold text-gray-700">Update Email</span>
+                </div>
+                <ChevronRight size={16} className="text-gray-300"/>
               </button>
-              <button className="flex items-center justify-between p-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors">
-                <div className="flex items-center gap-3"><Lock size={16} className="text-gray-400"/> Update Password</div>
-                <ChevronRight size={14}/>
+              <button className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-all group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white rounded-xl shadow-sm group-hover:shadow-md transition-all text-gray-400 group-hover:text-indigo-600"><Key size={16}/></div>
+                  <span className="text-sm font-bold text-gray-700">Update Password</span>
+                </div>
+                <ChevronRight size={16} className="text-gray-300"/>
               </button>
-              <button className="flex items-center justify-between p-3 text-sm font-medium text-red-600 hover:bg-red-50 rounded-xl transition-colors">
-                <div className="flex items-center gap-3"><Trash2 size={16}/> Deactivate Account</div>
+              <button className="w-full flex items-center justify-between p-4 bg-rose-50 rounded-2xl hover:bg-rose-100 transition-all group">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white rounded-xl shadow-sm text-rose-500"><AlertTriangle size={16}/></div>
+                  <span className="text-sm font-bold text-rose-600">Deactivate Account</span>
+                </div>
               </button>
             </div>
           </section>
 
           {/* Group 4: Support */}
           <section className="space-y-4 pb-10">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Support</h3>
-            <div className="grid grid-cols-1 gap-2">
-              <a href="#" className="flex items-center justify-between p-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-xl transition-colors">
-                <div className="flex items-center gap-3"><HelpCircle size={16} className="text-gray-400"/> FAQ & Blog</div>
+            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Group 4: Support</h3>
+            <div className="space-y-2">
+              <a 
+                href="https://blog.getmystuff.co/faq" 
+                target="_blank" 
+                rel="noreferrer"
+                className="w-full flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white rounded-xl shadow-sm text-gray-400 group-hover:text-amber-500"><FileText size={16}/></div>
+                  <div className="text-left">
+                    <span className="text-sm font-bold text-gray-700 block">FAQ & Blog</span>
+                    <span className="text-[10px] text-gray-400 font-medium">Community guidelines & tips</span>
+                  </div>
+                </div>
                 <ExternalLink size={14} className="text-gray-300"/>
               </a>
               <button 
                 onClick={onOpenSupport}
-                className="flex items-center justify-between p-3 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors"
+                className="w-full flex items-center justify-between p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl hover:bg-indigo-100 transition-all group"
               >
-                <div className="flex items-center gap-3"><MessageSquare size={16}/> Contact Support</div>
-                <ChevronRight size={14}/>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white rounded-xl shadow-sm text-indigo-600"><HelpCircle size={16}/></div>
+                  <span className="text-sm font-bold text-indigo-700">Contact Support</span>
+                </div>
+                <ChevronRight size={16} className="text-indigo-300"/>
               </button>
             </div>
           </section>
@@ -256,22 +377,37 @@ const UserSidebar = ({ isOpen, onClose, userProfile, setUserProfile, onOpenSuppo
   );
 };
 
-const AddTripModal = ({ isOpen, onClose, onAdd }) => {
-  const [formData, setFormData] = useState({ from: '', to: '', date: '', time: '12:00', capacity: '', categories: [], isCompanion: false, flightNumber: '' });
+const AddTripModal = ({ isOpen, onClose, onAdd }: { isOpen: boolean; onClose: () => void; onAdd: (trip: Trip) => void }) => {
+  const [formData, setFormData] = useState({ from: '', to: '', date: '', time: '12:00', capacity: '', categories: [] as string[], isCompanion: false, flightNumber: '' });
   const [error, setError] = useState("");
   if (!isOpen) return null;
-  const handleSubmit = (e) => {
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.flightNumber && !/^[A-Z]{2,3}\d{1,4}$/.test(formData.flightNumber.toUpperCase())) {
       setError("Please enter a valid flight number (e.g., EK202)");
       return;
     }
     const departureTime = new Date(`${formData.date}T${formData.time}`).toISOString();
-    onAdd({ ...formData, departureTime, id: Date.now(), remaining: formData.capacity, user: { name: "Ketan Saxena", level: 4, rating: 5.0, tripsCompleted: 12, isVerified: true, socials: ['linkedin', 'instagram'] } });
+    onAdd({ 
+      ...formData, 
+      departureTime, 
+      id: Date.now(), 
+      capacity: Number(formData.capacity),
+      remaining: Number(formData.capacity), 
+      user: { name: "Ketan Saxena", level: 4, rating: 5.0, tripsCompleted: 12, isVerified: true, socials: ['linkedin', 'instagram'] } 
+    });
     setFormData({ from: '', to: '', date: '', time: '12:00', capacity: '', categories: [], isCompanion: false, flightNumber: '' });
     setError(""); onClose();
   };
-  const toggleCategory = (cat) => { setFormData(prev => ({ ...prev, categories: prev.categories.includes(cat) ? prev.categories.filter(c => c !== cat) : [...prev.categories, cat] })); };
+
+  const toggleCategory = (cat: string) => { 
+    setFormData(prev => ({ 
+      ...prev, 
+      categories: prev.categories.includes(cat) ? prev.categories.filter(c => c !== cat) : [...prev.categories, cat] 
+    })); 
+  };
+
   return (
     <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
@@ -300,7 +436,7 @@ const AddTripModal = ({ isOpen, onClose, onAdd }) => {
 
 // --- View Components ---
 
-const SenderView = ({ trips }) => (
+const SenderView = ({ trips }: { trips: Trip[] }) => (
   <div className="max-w-5xl mx-auto p-6 space-y-8">
     <section className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl p-8 text-white shadow-xl shadow-indigo-100">
       <h2 className="text-3xl font-bold mb-2 tracking-tight">Find a Traveller</h2>
@@ -334,7 +470,6 @@ const SenderView = ({ trips }) => (
                 
                 <div className="space-y-1.5">
                   <Badge color="purple">Level {trip.user.level}</Badge>
-                  {/* Social Verification Indicators */}
                   <div className="flex items-center gap-1.5 px-0.5">
                     {trip.user.socials?.includes('linkedin') && (
                       <div className="bg-blue-50 text-blue-600 p-1 rounded border border-blue-100" title="LinkedIn Verified">
@@ -395,7 +530,11 @@ const SenderView = ({ trips }) => (
 
 // --- Navbar & Notification Center ---
 
-const NotificationCenter = ({ notifications, onMarkRead, onClearAll }) => {
+const NotificationCenter = ({ notifications, onMarkRead, onClearAll }: { 
+  notifications: Notification[]; 
+  onMarkRead: (id: number) => void; 
+  onClearAll: () => void;
+}) => {
   const unreadCount = notifications.filter(n => n.unread).length;
   return (
     <div className="absolute top-12 right-0 w-[350px] bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-in slide-in-from-top-2 duration-200">
@@ -425,19 +564,22 @@ const NotificationCenter = ({ notifications, onMarkRead, onClearAll }) => {
 // --- Main App Component ---
 
 export default function App() {
-  const [activeMode, setActiveMode] = useState('sender'); 
-  const [trips, setTrips] = useState(INITIAL_TRIPS);
+  const [activeMode, setActiveMode] = useState<'sender' | 'travel'>('sender'); 
+  const [trips, setTrips] = useState<Trip[]>(INITIAL_TRIPS);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFICATIONS);
-  const [userProfile, setUserProfile] = useState({ 
+  const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
+  const [userProfile, setUserProfile] = useState<UserProfile>({ 
     firstName: "Ketan", 
     lastName: "Saxena",
+    email: "ketan.s@example.com",
+    currentLocation: "Dubai, UAE",
+    frequentPlaces: "London, Delhi, NYC",
     socials: { linkedin: true, facebook: false, instagram: true }
   });
 
-  const bellRef = useRef(null);
+  const bellRef = useRef<HTMLDivElement>(null);
   const [showNotifications, setShowNotifications] = useState(false);
 
   return (
